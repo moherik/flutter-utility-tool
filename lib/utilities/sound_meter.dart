@@ -1,12 +1,14 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:noise_meter/noise_meter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class SoundMeterWidget extends StatefulWidget {
-  const SoundMeterWidget({Key? key}) : super(key: key);
+  const SoundMeterWidget({super.key});
 
   @override
   State<SoundMeterWidget> createState() => _SoundMeterWidgetState();
@@ -14,53 +16,110 @@ class SoundMeterWidget extends StatefulWidget {
 
 class _SoundMeterWidgetState extends State<SoundMeterWidget> {
   bool _isListening = false;
+  bool _isStarting = false;
   double _db = 30.0;
   double _maxDb = 30.0;
-  Timer? _timer;
-  final List<double> _waveHistory = List.filled(30, 0.0);
-  final Random _random = Random();
+  String? _errorMessage;
+  NoiseMeter? _noiseMeter;
+  StreamSubscription<NoiseReading>? _noiseSubscription;
+  final List<double> _waveHistory = List.filled(30, 30.0);
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _noiseSubscription?.cancel();
     super.dispose();
   }
 
-  void _toggleListening() {
-    setState(() {
-      _isListening = !_isListening;
-    });
-
+  Future<void> _toggleListening() async {
+    if (_isStarting) return;
     if (_isListening) {
-      _startSimulatedMic();
+      await _stopListening();
     } else {
-      _timer?.cancel();
+      await _startListening();
     }
   }
 
-  void _startSimulatedMic() {
-    _timer?.cancel();
-    // Update noise readings every 100ms
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+  Future<void> _startListening() async {
+    setState(() {
+      _isStarting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      var permission = await Permission.microphone.status;
+      if (!permission.isGranted) {
+        permission = await Permission.microphone.request();
+      }
+
+      if (!permission.isGranted) {
+        if (!mounted) return;
+        setState(() {
+          _isStarting = false;
+          _isListening = false;
+          _errorMessage = context.read<AppProvider>().translate(
+            'Izin mikrofon ditolak. Aktifkan izin mikrofon untuk memakai Sound Meter.',
+            'Microphone permission was denied. Enable microphone permission to use Sound Meter.',
+          );
+        });
+        return;
+      }
+
+      _noiseMeter ??= NoiseMeter();
+      await _noiseSubscription?.cancel();
+      _noiseSubscription = _noiseMeter!.noise.listen(
+        _onNoiseData,
+        onError: _onNoiseError,
+        cancelOnError: true,
+      );
+
+      if (!mounted) return;
       setState(() {
-        // Base noise level around 30dB, fluctuating up to 85dB normally
-        // unless there is a simulated spike
-        double newDb = 35 + _random.nextDouble() * 20;
-
-        // Randomly simulate vocal/loud sound spikes
-        if (_random.nextInt(10) == 0) {
-          newDb += _random.nextDouble() * 35;
-        }
-
-        _db = newDb;
-        if (_db > _maxDb) {
-          _maxDb = _db;
-        }
-
-        // Shift wave history
-        _waveHistory.removeAt(0);
-        _waveHistory.add(_db);
+        _isStarting = false;
+        _isListening = true;
       });
+    } catch (error) {
+      _onNoiseError(error);
+    }
+  }
+
+  Future<void> _stopListening() async {
+    await _noiseSubscription?.cancel();
+    _noiseSubscription = null;
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+      _isStarting = false;
+    });
+  }
+
+  void _onNoiseData(NoiseReading reading) {
+    if (!mounted) return;
+
+    final meanDb = reading.meanDecibel;
+    if (meanDb.isNaN || meanDb.isInfinite) return;
+
+    setState(() {
+      _db = meanDb.clamp(0.0, 140.0);
+      _maxDb = reading.maxDecibel.isFinite
+          ? reading.maxDecibel.clamp(_maxDb, 140.0)
+          : _maxDb;
+
+      _waveHistory.removeAt(0);
+      _waveHistory.add(_db);
+    });
+  }
+
+  void _onNoiseError(Object error) {
+    _noiseSubscription?.cancel();
+    _noiseSubscription = null;
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+      _isStarting = false;
+      _errorMessage = context.read<AppProvider>().translate(
+        'Mikrofon tidak bisa diakses pada perangkat atau platform ini.',
+        'The microphone cannot be accessed on this device or platform.',
+      );
     });
   }
 
@@ -71,26 +130,30 @@ class _SoundMeterWidgetState extends State<SoundMeterWidget> {
   }
 
   String _getNoiseLabel(double db, AppProvider provider) {
-    if (db < 40)
+    if (db < 40) {
       return provider.translate(
         'Sangat Sunyi (Perpustakaan)',
         'Very Quiet (Library)',
       );
-    if (db < 60)
+    }
+    if (db < 60) {
       return provider.translate(
         'Sunyi (Kantor Tenang)',
         'Quiet (Normal Office)',
       );
-    if (db < 70)
+    }
+    if (db < 70) {
       return provider.translate(
         'Sedang (Percakapan)',
         'Moderate (Conversation)',
       );
-    if (db < 85)
+    }
+    if (db < 85) {
       return provider.translate(
         'Bising (Jalanan Ramai)',
         'Loud (Heavy Traffic)',
       );
+    }
     return provider.translate(
       'Sangat Bising (Berbahaya)',
       'Very Loud (Danger)',
@@ -98,9 +161,9 @@ class _SoundMeterWidgetState extends State<SoundMeterWidget> {
   }
 
   Color _getNoiseColor(double db) {
-    if (db < 60) return Colors.green;
-    if (db < 80) return Colors.orange;
-    return Colors.red;
+    if (db < 60) return AppTheme.tertiaryColor;
+    if (db < 80) return AppTheme.neutralColor;
+    return AppTheme.primaryColor;
   }
 
   @override
@@ -113,6 +176,33 @@ class _SoundMeterWidgetState extends State<SoundMeterWidget> {
 
     return Column(
       children: [
+        if (_errorMessage != null) ...[
+          BentoCard(
+            color: AppTheme.primaryColor.withOpacity(0.08),
+            borderColor: AppTheme.primaryColor,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
         // Main Dial & Decibel Indicator
         Expanded(
           flex: 3,
@@ -143,9 +233,17 @@ class _SoundMeterWidgetState extends State<SoundMeterWidget> {
                 const SizedBox(height: 8),
 
                 Text(
-                  _isListening
-                      ? _getNoiseLabel(_db, provider)
-                      : provider.translate('Mikrofon Mati', 'Sound Meter Off'),
+                  _isStarting
+                      ? provider.translate(
+                          'Mengaktifkan mikrofon...',
+                          'Starting microphone...',
+                        )
+                      : (_isListening
+                            ? _getNoiseLabel(_db, provider)
+                            : provider.translate(
+                                'Mikrofon Mati',
+                                'Sound Meter Off',
+                              )),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
@@ -188,7 +286,7 @@ class _SoundMeterWidgetState extends State<SoundMeterWidget> {
                 onPressed: _isListening ? _resetMax : null,
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.controlRadius),
                   ),
                 ),
                 child: Text(provider.translate('RESET MAKS', 'RESET MAX')),
@@ -203,16 +301,18 @@ class _SoundMeterWidgetState extends State<SoundMeterWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Center(
             child: ElevatedButton.icon(
-              onPressed: _toggleListening,
+              onPressed: _isStarting ? null : _toggleListening,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isListening ? Colors.red : theme.primaryColor,
+                backgroundColor: _isListening
+                    ? AppTheme.primaryColor
+                    : theme.primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 12,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppTheme.controlRadius),
                 ),
               ),
               icon: Icon(
@@ -253,7 +353,6 @@ class WavePainter extends CustomPainter {
     final midY = size.height / 2;
 
     for (int i = 0; i < history.length; i++) {
-      // Map dB to visual amplitude height relative to canvas bounds
       final amp = ((history[i] - 30) / 70) * (size.height / 2);
       final x = i * step;
       final y = midY + (i % 2 == 0 ? amp : -amp);

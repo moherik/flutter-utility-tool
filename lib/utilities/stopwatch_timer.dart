@@ -2,10 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class StopwatchTimerWidget extends StatefulWidget {
-  const StopwatchTimerWidget({Key? key}) : super(key: key);
+  const StopwatchTimerWidget({super.key});
 
   @override
   State<StopwatchTimerWidget> createState() => _StopwatchTimerWidgetState();
@@ -105,13 +106,20 @@ class _StopwatchTimerWidgetState extends State<StopwatchTimerWidget>
     });
 
     _tmTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_tmRemainingSeconds > 0) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_tmRemainingSeconds <= 1) {
+        timer.cancel();
+        setState(() {
+          _tmRemainingSeconds = 0;
+        });
+        _onTimerFinished();
+      } else {
         setState(() {
           _tmRemainingSeconds--;
         });
-      } else {
-        timer.cancel();
-        _onTimerFinished();
       }
     });
   }
@@ -134,6 +142,7 @@ class _StopwatchTimerWidgetState extends State<StopwatchTimerWidget>
   }
 
   void _onTimerFinished() {
+    if (!mounted) return;
     setState(() {
       _tmIsRunning = false;
       _tmIsPaused = false;
@@ -145,7 +154,7 @@ class _StopwatchTimerWidgetState extends State<StopwatchTimerWidget>
         return AlertDialog(
           title: Row(
             children: const [
-              Icon(Icons.alarm_on_rounded, color: Colors.red),
+              Icon(Icons.alarm_on_rounded, color: AppTheme.primaryColor),
               SizedBox(width: 12),
               Text('Time\'s Up!'),
             ],
@@ -329,7 +338,7 @@ class _StopwatchTimerWidgetState extends State<StopwatchTimerWidget>
           ElevatedButton.icon(
             onPressed: _stopStopwatch,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.pause_rounded),
@@ -497,7 +506,7 @@ class _StopwatchTimerWidgetState extends State<StopwatchTimerWidget>
             ElevatedButton.icon(
               onPressed: _pauseTimer,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber[700],
+                backgroundColor: AppTheme.neutralColor,
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.pause_rounded),
@@ -517,7 +526,7 @@ class _StopwatchTimerWidgetState extends State<StopwatchTimerWidget>
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppTheme.controlRadius),
           ),
         ),
         icon: const Icon(Icons.play_arrow_rounded),

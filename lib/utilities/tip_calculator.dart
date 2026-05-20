@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
+import '../utils/app_currency.dart';
+import '../utils/currency_field_helper.dart';
 import '../widgets/bento_card.dart';
+import '../widgets/currency_selector.dart';
 
 class TipCalculatorWidget extends StatefulWidget {
-  const TipCalculatorWidget({Key? key}) : super(key: key);
+  const TipCalculatorWidget({super.key});
 
   @override
   State<TipCalculatorWidget> createState() => _TipCalculatorWidgetState();
 }
 
 class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
-  double _billAmount = 150000;
+  AppCurrency? _lastCurrency;
+  double _billAmount = 200000;
   double _tipPercent = 10;
   int _peopleCount = 2;
 
   final TextEditingController _billController = TextEditingController(
-    text: '150000',
+    text: '200000',
   );
 
   @override
@@ -26,6 +31,17 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
       setState(() {
         _billAmount = double.tryParse(_billController.text) ?? 0.0;
       });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncToProviderCurrency());
+  }
+
+  void _syncToProviderCurrency() {
+    if (!mounted) return;
+    final currency = context.read<AppProvider>().currency;
+    _lastCurrency = currency;
+    CurrencyFieldHelper.applyDefault(_billController, currency, 'tip_bill');
+    setState(() {
+      _billAmount = double.tryParse(_billController.text) ?? 0;
     });
   }
 
@@ -40,8 +56,26 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
     final provider = context.watch<AppProvider>();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final currency = provider.currency;
 
-    // Calculations
+    CurrencyFieldHelper.handleCurrencyChange(
+      lastCurrency: _lastCurrency,
+      currentCurrency: currency,
+      onConvert: () {
+        if (_lastCurrency != null) {
+          CurrencyFieldHelper.convertController(
+            _billController,
+            _lastCurrency!,
+            currency,
+          );
+          setState(() {
+            _billAmount = double.tryParse(_billController.text) ?? 0;
+          });
+        }
+      },
+    );
+    _lastCurrency = currency;
+
     final totalTip = _billAmount * (_tipPercent / 100);
     final totalBill = _billAmount + totalTip;
     final tipPerPerson = totalTip / _peopleCount;
@@ -51,17 +85,22 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Input Bill Card
+          const CurrencySelector(),
+          const SizedBox(height: 12),
           BentoCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  provider.translate('Jumlah Tagihan (Rp)', 'Bill Amount (Rp)'),
+                  currency.amountLabel(
+                    provider.languageCode,
+                    'Jumlah Tagihan',
+                    'Bill Amount',
+                  ),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    color: AppTheme.textSecondary(isDark),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -72,7 +111,9 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                     Expanded(
                       child: TextField(
                         controller: _billController,
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -90,12 +131,9 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Tip & People Card
           BentoCard(
             child: Column(
               children: [
-                // Tip percentage
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -104,7 +142,7 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      "${_tipPercent.round()}%",
+                      '${_tipPercent.round()}%',
                       style: TextStyle(
                         fontSize: 18,
                         color: theme.primaryColor,
@@ -121,10 +159,7 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                   activeColor: theme.primaryColor,
                   onChanged: (val) => setState(() => _tipPercent = val),
                 ),
-
                 const Divider(height: 24),
-
-                // People Split
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -137,12 +172,13 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline_rounded),
                           onPressed: () {
-                            if (_peopleCount > 1)
+                            if (_peopleCount > 1) {
                               setState(() => _peopleCount--);
+                            }
                           },
                         ),
                         Text(
-                          "$_peopleCount",
+                          '$_peopleCount',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -151,8 +187,9 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline_rounded),
                           onPressed: () {
-                            if (_peopleCount < 50)
+                            if (_peopleCount < 50) {
                               setState(() => _peopleCount++);
+                            }
                           },
                         ),
                       ],
@@ -163,17 +200,13 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Results Section
           Text(
             provider.translate('Rincian Pembagian', 'Split Details'),
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-
-          // Total Per Person Bento Card
           BentoCard(
-            color: theme.primaryColor.withOpacity(0.08),
+            color: theme.primaryColor.withValues(alpha: 0.08),
             borderColor: theme.primaryColor,
             child: Column(
               children: [
@@ -182,12 +215,12 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.grey[300] : Colors.grey[600],
+                    color: AppTheme.textSecondary(isDark),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Rp ${totalPerPerson.toStringAsFixed(0)}",
+                  provider.formatMoney(totalPerPerson),
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -195,15 +228,16 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                   ),
                 ),
                 Text(
-                  "${provider.translate('Uang tip:', 'Tip portion:')} Rp ${tipPerPerson.toStringAsFixed(0)}",
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  '${provider.translate('Uang tip:', 'Tip portion:')} ${provider.formatMoney(tipPerPerson)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary(isDark),
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-
-          // Summary details
           Row(
             children: [
               Expanded(
@@ -214,12 +248,12 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                         provider.translate('Total Tip', 'Total Tip'),
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          color: AppTheme.textSecondary(isDark),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Rp ${totalTip.toStringAsFixed(0)}",
+                        provider.formatMoney(totalTip),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -238,12 +272,12 @@ class _TipCalculatorWidgetState extends State<TipCalculatorWidget> {
                         provider.translate('Total Bayar', 'Total Bill'),
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          color: AppTheme.textSecondary(isDark),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Rp ${totalBill.toStringAsFixed(0)}",
+                        provider.formatMoney(totalBill),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

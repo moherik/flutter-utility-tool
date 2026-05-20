@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_currency.dart';
+import '../utils/currency_field_helper.dart';
 import '../widgets/bento_card.dart';
+import '../widgets/currency_selector.dart';
 
 class DiscountCalculatorWidget extends StatefulWidget {
-  const DiscountCalculatorWidget({Key? key}) : super(key: key);
+  const DiscountCalculatorWidget({super.key});
 
   @override
   State<DiscountCalculatorWidget> createState() =>
@@ -13,6 +16,7 @@ class DiscountCalculatorWidget extends StatefulWidget {
 }
 
 class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
+  AppCurrency? _lastCurrency;
   double _originalPrice = 100000;
   double _discountPercent = 10;
   double _taxPercent = 0;
@@ -31,6 +35,24 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
     _priceController.addListener(_onChanged);
     _discountController.addListener(_onChanged);
     _taxController.addListener(_onChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncToProviderCurrency());
+  }
+
+  void _syncToProviderCurrency() {
+    if (!mounted) return;
+    final currency = context.read<AppProvider>().currency;
+    _lastCurrency = currency;
+    CurrencyFieldHelper.applyDefault(
+      _priceController,
+      currency,
+      'discount_price',
+    );
+    _onChanged();
+  }
+
+  void _onCurrencyConverted(AppCurrency from, AppCurrency to) {
+    CurrencyFieldHelper.convertController(_priceController, from, to);
+    _onChanged();
   }
 
   @override
@@ -54,8 +76,19 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
     final provider = context.watch<AppProvider>();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final currency = provider.currency;
 
-    // Calculations
+    CurrencyFieldHelper.handleCurrencyChange(
+      lastCurrency: _lastCurrency,
+      currentCurrency: currency,
+      onConvert: () {
+        if (_lastCurrency != null) {
+          _onCurrencyConverted(_lastCurrency!, currency);
+        }
+      },
+    );
+    _lastCurrency = currency;
+
     final discountAmount = _originalPrice * (_discountPercent / 100);
     final priceAfterDiscount = _originalPrice - discountAmount;
     final taxAmount = priceAfterDiscount * (_taxPercent / 100);
@@ -65,15 +98,17 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Input Form Card
+          const CurrencySelector(),
+          const SizedBox(height: 12),
           BentoCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildInputField(
-                  label: provider.translate(
-                    'Harga Asli (Rp)',
-                    'Original Price (Rp)',
+                  label: currency.amountLabel(
+                    provider.languageCode,
+                    'Harga Asli',
+                    'Original Price',
                   ),
                   controller: _priceController,
                   icon: Icons.payments_rounded,
@@ -105,17 +140,13 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Output Summary Cards
           Text(
             provider.translate('Rincian Perhitungan', 'Calculation Summary'),
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-
-          // Bento boxes for totals
           BentoCard(
-            color: theme.primaryColor.withOpacity(0.08),
+            color: theme.primaryColor.withValues(alpha: 0.08),
             borderColor: theme.primaryColor,
             child: Column(
               children: [
@@ -124,12 +155,12 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.grey[300] : Colors.grey[600],
+                    color: AppTheme.textSecondary(isDark),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Rp ${finalPrice.toStringAsFixed(0)}",
+                  provider.formatMoney(finalPrice),
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -140,7 +171,6 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
             ),
           ),
           const SizedBox(height: 16),
-
           Row(
             children: [
               Expanded(
@@ -151,16 +181,16 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
                         provider.translate('Hemat', 'You Save'),
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          color: AppTheme.textSecondary(isDark),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Rp ${discountAmount.toStringAsFixed(0)}",
+                        provider.formatMoney(discountAmount),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                          color: AppTheme.tertiaryColor,
                         ),
                       ),
                     ],
@@ -176,16 +206,16 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
                         provider.translate('Jumlah Pajak', 'Tax Amount'),
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          color: AppTheme.textSecondary(isDark),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Rp ${taxAmount.toStringAsFixed(0)}",
+                        provider.formatMoney(taxAmount),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.red,
+                          color: AppTheme.primaryColor,
                         ),
                       ),
                     ],
@@ -210,7 +240,7 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: AppTheme.cardAltColor(isDark),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppTheme.controlRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,7 +250,7 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              color: AppTheme.textSecondary(isDark),
             ),
           ),
           const SizedBox(height: 4),
@@ -231,7 +261,9 @@ class _DiscountCalculatorWidgetState extends State<DiscountCalculatorWidget> {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

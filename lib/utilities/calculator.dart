@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class CalculatorWidget extends StatefulWidget {
-  const CalculatorWidget({Key? key}) : super(key: key);
+  const CalculatorWidget({super.key});
 
   @override
   State<CalculatorWidget> createState() => _CalculatorWidgetState();
@@ -127,8 +127,9 @@ class _CalculatorWidgetState extends State<CalculatorWidget> {
         String func = match.group(1)!;
         pos += match.end;
         double arg = parseExpr();
-        if (pos < formatted.length && formatted[pos] == ')')
+        if (pos < formatted.length && formatted[pos] == ')') {
           pos++; // consume ')'
+        }
 
         switch (func) {
           case 'sin':
@@ -149,8 +150,9 @@ class _CalculatorWidgetState extends State<CalculatorWidget> {
       if (formatted[pos] == '(') {
         pos++; // consume '('
         double val = parseExpr();
-        if (pos < formatted.length && formatted[pos] == ')')
+        if (pos < formatted.length && formatted[pos] == ')') {
           pos++; // consume ')'
+        }
         return val;
       }
 
@@ -366,7 +368,7 @@ class _CalculatorWidgetState extends State<CalculatorWidget> {
                     cardColor = isDark
                         ? const Color(0xFF3B1515)
                         : const Color(0xFFFCE4E4);
-                    textColor = Colors.red;
+                    textColor = AppTheme.primaryColor;
                   } else {
                     cardColor = AppTheme.cardColor(isDark);
                     textColor = isDark ? Colors.white : Colors.black87;
@@ -402,11 +404,7 @@ class _CalculatorWidgetState extends State<CalculatorWidget> {
               showModalBottomSheet(
                 context: context,
                 backgroundColor: theme.scaffoldBackgroundColor,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(24.0),
-                  ),
-                ),
+                shape: const RoundedRectangleBorder(),
                 builder: (context) {
                   return Padding(
                     padding: const EdgeInsets.all(20.0),
@@ -426,7 +424,7 @@ class _CalculatorWidgetState extends State<CalculatorWidget> {
                             IconButton(
                               icon: const Icon(
                                 Icons.delete_outline_rounded,
-                                color: Colors.red,
+                                color: AppTheme.primaryColor,
                               ),
                               onPressed: () {
                                 provider.clearCalcHistory();

@@ -13,7 +13,7 @@ class BentoCard extends StatefulWidget {
   final int gridHeight;
 
   const BentoCard({
-    Key? key,
+    super.key,
     required this.child,
     this.onTap,
     this.color,
@@ -23,7 +23,7 @@ class BentoCard extends StatefulWidget {
     this.padding = const EdgeInsets.all(16.0),
     this.gridWidth = 1,
     this.gridHeight = 1,
-  }) : super(key: key);
+  });
 
   @override
   State<BentoCard> createState() => _BentoCardState();
@@ -60,16 +60,17 @@ class _BentoCardState extends State<BentoCard>
     final isDark = theme.brightness == Brightness.dark;
 
     final bgColor = widget.color ?? AppTheme.cardColor(isDark);
-    final hoverBg = isDark ? AppTheme.darkCardAlt : AppTheme.lightCardAlt;
+    final hoverBg = AppTheme.cardAltColor(isDark);
     final border = widget.borderColor ?? AppTheme.borderColor(isDark);
+    final isInteractive = widget.onTap != null;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       child: GestureDetector(
-        onTapDown: (_) => widget.onTap != null ? _controller.forward() : null,
-        onTapUp: (_) => widget.onTap != null ? _controller.reverse() : null,
-        onTapCancel: () => widget.onTap != null ? _controller.reverse() : null,
+        onTapDown: (_) => isInteractive ? _controller.forward() : null,
+        onTapUp: (_) => isInteractive ? _controller.reverse() : null,
+        onTapCancel: () => isInteractive ? _controller.reverse() : null,
         onTap: widget.onTap,
         child: AnimatedBuilder(
           animation: _scaleAnimation,
@@ -80,16 +81,21 @@ class _BentoCardState extends State<BentoCard>
                 width: widget.width,
                 height: widget.height,
                 decoration: BoxDecoration(
-                  color: (_isHovering && widget.onTap != null) ? hoverBg : bgColor,
-                  borderRadius: BorderRadius.circular(4.0),
+                  color: (_isHovering && isInteractive) ? hoverBg : bgColor,
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
                   border: Border.all(
-                    color: (_isHovering && widget.onTap != null) ? theme.primaryColor : border,
-                    width: 1.0,
+                    color: (_isHovering && isInteractive)
+                        ? theme.colorScheme.primary.withValues(alpha: 0.4)
+                        : border,
                   ),
+                  boxShadow: AppTheme.cardShadow(isDark),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(3.0),
-                  child: Padding(padding: widget.padding, child: widget.child),
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                  child: Padding(
+                    padding: widget.padding,
+                    child: widget.child,
+                  ),
                 ),
               ),
             );

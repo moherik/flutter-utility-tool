@@ -1,13 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class DeviceInfoWidget extends StatefulWidget {
-  const DeviceInfoWidget({Key? key}) : super(key: key);
+  const DeviceInfoWidget({super.key});
 
   @override
   State<DeviceInfoWidget> createState() => _DeviceInfoWidgetState();
@@ -17,6 +19,7 @@ class _DeviceInfoWidgetState extends State<DeviceInfoWidget> {
   final Battery _battery = Battery();
   int _batteryLevel = 100;
   BatteryState _batteryState = BatteryState.unknown;
+  StreamSubscription<BatteryState>? _batterySubscription;
 
   Map<String, String> _deviceData = {};
 
@@ -27,17 +30,27 @@ class _DeviceInfoWidgetState extends State<DeviceInfoWidget> {
     _loadDeviceInfo();
   }
 
+  @override
+  void dispose() {
+    _batterySubscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadBatteryInfo() async {
     try {
       final level = await _battery.batteryLevel;
       final state = await _battery.batteryState;
+      if (!mounted) return;
       setState(() {
         _batteryLevel = level;
         _batteryState = state;
       });
       // Listen to changes
-      _battery.onBatteryStateChanged.listen((BatteryState state) async {
+      _batterySubscription = _battery.onBatteryStateChanged.listen((
+        BatteryState state,
+      ) async {
         final newLevel = await _battery.batteryLevel;
+        if (!mounted) return;
         setState(() {
           _batteryLevel = newLevel;
           _batteryState = state;
@@ -73,6 +86,7 @@ class _DeviceInfoWidgetState extends State<DeviceInfoWidget> {
       data = {'Error': 'Could not load device info'};
     }
 
+    if (!mounted) return;
     setState(() {
       _deviceData = data;
     });
@@ -90,11 +104,11 @@ class _DeviceInfoWidgetState extends State<DeviceInfoWidget> {
     switch (_batteryState) {
       case BatteryState.charging:
         batteryIcon = Icons.battery_charging_full_rounded;
-        batteryColor = Colors.green;
+        batteryColor = AppTheme.tertiaryColor;
         break;
       case BatteryState.full:
         batteryIcon = Icons.battery_full_rounded;
-        batteryColor = Colors.green;
+        batteryColor = AppTheme.tertiaryColor;
         break;
       default:
         if (_batteryLevel > 70) {
@@ -102,10 +116,10 @@ class _DeviceInfoWidgetState extends State<DeviceInfoWidget> {
           batteryColor = theme.primaryColor;
         } else if (_batteryLevel > 25) {
           batteryIcon = Icons.battery_4_bar_rounded;
-          batteryColor = Colors.amber;
+          batteryColor = AppTheme.neutralColor;
         } else {
           batteryIcon = Icons.battery_alert_rounded;
-          batteryColor = Colors.red;
+          batteryColor = AppTheme.primaryColor;
         }
     }
 

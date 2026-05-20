@@ -6,7 +6,7 @@ import '../providers/app_provider.dart';
 import '../widgets/bento_card.dart';
 
 class WorldClockWidget extends StatefulWidget {
-  const WorldClockWidget({Key? key}) : super(key: key);
+  const WorldClockWidget({super.key});
 
   @override
   State<WorldClockWidget> createState() => _WorldClockWidgetState();

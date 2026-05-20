@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Utility Tools App membutuhkan akses kamera untuk memindai QR dan barcode.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Utility Tools App membutuhkan akses mikrofon untuk mengukur tingkat kebisingan.</string>
 </dict>
 </plist>

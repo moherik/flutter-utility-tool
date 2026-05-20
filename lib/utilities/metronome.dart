@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class MetronomeWidget extends StatefulWidget {
-  const MetronomeWidget({Key? key}) : super(key: key);
+  const MetronomeWidget({super.key});
 
   @override
   State<MetronomeWidget> createState() => _MetronomeWidgetState();
@@ -20,7 +21,7 @@ class _MetronomeWidgetState extends State<MetronomeWidget> {
   int _beatsPerMeasure = 4;
 
   // Tap tempo state
-  List<DateTime> _tapTimes = [];
+  final List<DateTime> _tapTimes = [];
 
   @override
   void dispose() {
@@ -117,9 +118,10 @@ class _MetronomeWidgetState extends State<MetronomeWidget> {
                       width: 24,
                       height: 24,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
                         color: isActive
-                            ? (index == 0 ? Colors.red : theme.primaryColor)
+                            ? (index == 0
+                                  ? AppTheme.primaryColor
+                                  : theme.primaryColor)
                             : (isDark ? Colors.white12 : Colors.black12),
                         border: Border.all(
                           color: isActive ? Colors.white : Colors.transparent,
@@ -130,7 +132,7 @@ class _MetronomeWidgetState extends State<MetronomeWidget> {
                                 BoxShadow(
                                   color:
                                       (index == 0
-                                              ? Colors.red
+                                              ? AppTheme.primaryColor
                                               : theme.primaryColor)
                                           .withOpacity(0.5),
                                   blurRadius: 10,
@@ -258,7 +260,7 @@ class _MetronomeWidgetState extends State<MetronomeWidget> {
                       onPressed: _togglePlay,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isPlaying
-                            ? Colors.red
+                            ? AppTheme.primaryColor
                             : theme.primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
@@ -266,7 +268,9 @@ class _MetronomeWidgetState extends State<MetronomeWidget> {
                           vertical: 12,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.controlRadius,
+                          ),
                         ),
                       ),
                       icon: Icon(
@@ -284,7 +288,9 @@ class _MetronomeWidgetState extends State<MetronomeWidget> {
                           vertical: 12,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.controlRadius,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.touch_app_rounded),

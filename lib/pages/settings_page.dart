@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
+import '../utils/app_currency.dart';
 import '../widgets/bento_card.dart';
+import '../widgets/currency_selector.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -13,36 +16,26 @@ class SettingsPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          provider.translate('Pengaturan', 'Settings'),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
+        title: Text(provider.translate('Pengaturan', 'Settings')),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        iconTheme: IconThemeData(color: AppTheme.textPrimary(isDark)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Theme settings bento
-              Text(
-                provider.translate('TAMPILAN', 'APPEARANCE'),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
+              _SectionHeader(
+                label: provider.translate('Tampilan', 'Appearance'),
+                isDark: isDark,
               ),
-              const SizedBox(height: 8),
               BentoCard(
                 child: Column(
                   children: [
                     _buildRadioRow(
-                      context: context,
                       title: provider.translate(
                         'Gunakan Tema Sistem',
                         'System Default Theme',
@@ -50,76 +43,94 @@ class SettingsPage extends StatelessWidget {
                       value: ThemeMode.system,
                       groupValue: provider.themeMode,
                       onChanged: (val) => provider.changeTheme(val!),
-                      theme: theme,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 24, color: AppTheme.borderColor(isDark)),
                     _buildRadioRow(
-                      context: context,
                       title: provider.translate('Tema Terang', 'Light Theme'),
                       value: ThemeMode.light,
                       groupValue: provider.themeMode,
                       onChanged: (val) => provider.changeTheme(val!),
-                      theme: theme,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 24, color: AppTheme.borderColor(isDark)),
                     _buildRadioRow(
-                      context: context,
                       title: provider.translate('Tema Gelap', 'Dark Theme'),
                       value: ThemeMode.dark,
                       groupValue: provider.themeMode,
                       onChanged: (val) => provider.changeTheme(val!),
-                      theme: theme,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // Language settings bento
-              Text(
-                provider.translate('BAHASA', 'LANGUAGE'),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
+              const SizedBox(height: 28),
+              _SectionHeader(
+                label: provider.translate('Bahasa', 'Language'),
+                isDark: isDark,
               ),
-              const SizedBox(height: 8),
               BentoCard(
                 child: Column(
                   children: [
                     _buildLanguageRow(
-                      context: context,
                       title: 'Bahasa Indonesia',
                       code: 'id',
                       groupValue: provider.languageCode,
                       onChanged: (val) => provider.changeLanguage(val!),
-                      theme: theme,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 24, color: AppTheme.borderColor(isDark)),
                     _buildLanguageRow(
-                      context: context,
                       title: 'English',
                       code: 'en',
                       groupValue: provider.languageCode,
                       onChanged: (val) => provider.changeLanguage(val!),
-                      theme: theme,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // App information
-              Text(
-                provider.translate('INFORMASI APLIKASI', 'ABOUT APPLICATION'),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+              const SizedBox(height: 28),
+              _SectionHeader(
+                label: provider.translate(
+                  'Mata Uang Kalkulator',
+                  'Calculator Currency',
+                ),
+                isDark: isDark,
+              ),
+              BentoCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      provider.translate(
+                        'Berlaku untuk kalkulator diskon, tip, cicilan, bunga, dan BBM.',
+                        'Applies to discount, tip, loan, interest, and fuel calculators.',
+                      ),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary(isDark),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const CurrencySelector(),
+                    const SizedBox(height: 8),
+                    Text(
+                      provider.translate(
+                        'Kurs konversi: 1 USD = ${AppCurrency.exchangeRate.toStringAsFixed(0)} IDR',
+                        'Conversion rate: 1 USD = ${AppCurrency.exchangeRate.toStringAsFixed(0)} IDR',
+                      ),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary(isDark),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 28),
+              _SectionHeader(
+                label: provider.translate(
+                  'Informasi Aplikasi',
+                  'About Application',
+                ),
+                isDark: isDark,
+              ),
               BentoCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -130,25 +141,25 @@ class SettingsPage extends StatelessWidget {
                         'Utilitas All-In-One',
                         'All-In-One Utilities',
                       ),
-                      theme,
+                      isDark,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 24, color: AppTheme.borderColor(isDark)),
                     _buildInfoRow(
                       provider.translate('Paket', 'Package ID'),
                       'com.emas.utilityapp',
-                      theme,
+                      isDark,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 24, color: AppTheme.borderColor(isDark)),
                     _buildInfoRow(
                       provider.translate('Versi', 'Version'),
                       '1.0.0',
-                      theme,
+                      isDark,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 24, color: AppTheme.borderColor(isDark)),
                     _buildInfoRow(
                       provider.translate('Pengembang', 'Developer'),
                       'EMAS Tech Inc.',
-                      theme,
+                      isDark,
                     ),
                   ],
                 ),
@@ -161,82 +172,109 @@ class SettingsPage extends StatelessWidget {
   }
 
   Widget _buildRadioRow({
-    required BuildContext context,
     required String title,
     required ThemeMode value,
     required ThemeMode groupValue,
     required ValueChanged<ThemeMode?> onChanged,
-    required ThemeData theme,
   }) {
     return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.controlRadius),
       onTap: () => onChanged(value),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-          ),
-          Radio<ThemeMode>(
-            value: value,
-            groupValue: groupValue,
-            activeColor: theme.primaryColor,
-            onChanged: onChanged,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+            Radio<ThemeMode>(
+              value: value,
+              groupValue: groupValue,
+              activeColor: AppTheme.primaryColor,
+              onChanged: onChanged,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildLanguageRow({
-    required BuildContext context,
     required String title,
     required String code,
     required String groupValue,
     required ValueChanged<String?> onChanged,
-    required ThemeData theme,
   }) {
     return InkWell(
+      borderRadius: BorderRadius.circular(AppTheme.controlRadius),
       onTap: () => onChanged(code),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-          ),
-          Radio<String>(
-            value: code,
-            groupValue: groupValue,
-            activeColor: theme.primaryColor,
-            onChanged: onChanged,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+            Radio<String>(
+              value: code,
+              groupValue: groupValue,
+              activeColor: AppTheme.primaryColor,
+              onChanged: onChanged,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, ThemeData theme) {
+  Widget _buildInfoRow(String label, String value, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textSecondary(isDark),
           ),
         ),
         Text(
           value,
           style: TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: theme.primaryColor,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary(isDark),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label, required this.isDark});
+
+  final String label;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textSecondary(isDark),
+          letterSpacing: 0.2,
+        ),
+      ),
     );
   }
 }

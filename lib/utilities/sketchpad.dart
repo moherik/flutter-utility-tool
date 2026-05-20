@@ -1,37 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class SketchpadWidget extends StatefulWidget {
-  const SketchpadWidget({Key? key}) : super(key: key);
+  const SketchpadWidget({super.key});
 
   @override
   State<SketchpadWidget> createState() => _SketchpadWidgetState();
 }
 
 class _SketchpadWidgetState extends State<SketchpadWidget> {
-  List<DrawingStroke?> _strokes = [];
-  Color _selectedColor = Colors.orange;
+  final List<DrawingStroke?> _strokes = [];
+  Color _selectedColor = AppTheme.primaryColor;
   double _strokeWidth = 5.0;
   bool _isEraser = false;
 
   final List<Color> _colors = [
-    Colors.red,
-    Colors.orange,
-    Colors.yellow,
-    Colors.green,
-    Colors.blue,
-    Colors.indigo,
-    Colors.purple,
+    AppTheme.primaryColor,
+    AppTheme.secondaryColor,
+    AppTheme.tertiaryColor,
+    AppTheme.neutralColor,
     Colors.white,
     Colors.black,
   ];
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<AppProvider>();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -79,7 +73,7 @@ class _SketchpadWidgetState extends State<SketchpadWidget> {
                       IconButton(
                         icon: const Icon(
                           Icons.delete_sweep_rounded,
-                          color: Colors.red,
+                          color: AppTheme.primaryColor,
                         ),
                         onPressed: () {
                           setState(() {
@@ -157,7 +151,6 @@ class _SketchpadWidgetState extends State<SketchpadWidget> {
                         height: 32,
                         decoration: BoxDecoration(
                           color: color,
-                          shape: BoxShape.circle,
                           border: Border.all(
                             color: isSelected
                                 ? theme.primaryColor

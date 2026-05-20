@@ -4,10 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class PasswordGeneratorWidget extends StatefulWidget {
-  const PasswordGeneratorWidget({Key? key}) : super(key: key);
+  const PasswordGeneratorWidget({super.key});
 
   @override
   State<PasswordGeneratorWidget> createState() =>
@@ -54,10 +55,12 @@ class _PasswordGeneratorWidgetState extends State<PasswordGeneratorWidget> {
     final List<String> requiredChars = [];
     if (_includeUpper) requiredChars.add(upper[random.nextInt(upper.length)]);
     if (_includeLower) requiredChars.add(lower[random.nextInt(lower.length)]);
-    if (_includeNumbers)
+    if (_includeNumbers) {
       requiredChars.add(numbers[random.nextInt(numbers.length)]);
-    if (_includeSymbols)
+    }
+    if (_includeSymbols) {
       requiredChars.add(symbols[random.nextInt(symbols.length)]);
+    }
 
     for (int i = 0; i < _length - requiredChars.length; i++) {
       password += allowedChars[random.nextInt(allowedChars.length)];
@@ -76,8 +79,9 @@ class _PasswordGeneratorWidgetState extends State<PasswordGeneratorWidget> {
 
   // Evaluate Password Strength
   Map<String, dynamic> _getStrength() {
-    if (_generatedPassword.isEmpty)
+    if (_generatedPassword.isEmpty) {
       return {'text': '', 'color': Colors.grey, 'progress': 0.0};
+    }
 
     int score = 0;
     if (_generatedPassword.length >= 8) score++;
@@ -88,13 +92,29 @@ class _PasswordGeneratorWidgetState extends State<PasswordGeneratorWidget> {
     if (_includeSymbols) score++;
 
     if (score <= 2) {
-      return {'text': 'Sangat Lemah', 'color': Colors.red, 'progress': 0.25};
+      return {
+        'text': 'Sangat Lemah',
+        'color': AppTheme.primaryColor,
+        'progress': 0.25,
+      };
     } else if (score <= 4) {
-      return {'text': 'Sedang', 'color': Colors.orange, 'progress': 0.5};
+      return {
+        'text': 'Sedang',
+        'color': AppTheme.neutralColor,
+        'progress': 0.5,
+      };
     } else if (score <= 5) {
-      return {'text': 'Kuat', 'color': Colors.blue, 'progress': 0.75};
+      return {
+        'text': 'Kuat',
+        'color': AppTheme.tertiaryColor,
+        'progress': 0.75,
+      };
     } else {
-      return {'text': 'Sangat Aman', 'color': Colors.green, 'progress': 1.0};
+      return {
+        'text': 'Sangat Aman',
+        'color': AppTheme.tertiaryColor,
+        'progress': 1.0,
+      };
     }
   }
 
@@ -185,7 +205,7 @@ class _PasswordGeneratorWidgetState extends State<PasswordGeneratorWidget> {
                 ),
                 const SizedBox(height: 6),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppTheme.controlRadius),
                   child: LinearProgressIndicator(
                     value: strength['progress'],
                     color: strength['color'],
@@ -299,7 +319,9 @@ class _PasswordGeneratorWidgetState extends State<PasswordGeneratorWidget> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.controlRadius,
+                        ),
                       ),
                     ),
                     icon: const Icon(Icons.refresh_rounded),
@@ -328,7 +350,7 @@ class _PasswordGeneratorWidgetState extends State<PasswordGeneratorWidget> {
           Text(title, style: const TextStyle(fontSize: 15)),
           Switch(
             value: value,
-            activeColor: theme.primaryColor,
+            activeThumbColor: theme.primaryColor,
             onChanged: onChanged,
           ),
         ],

@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class DiceCoinWidget extends StatefulWidget {
-  const DiceCoinWidget({Key? key}) : super(key: key);
+  const DiceCoinWidget({super.key});
 
   @override
   State<DiceCoinWidget> createState() => _DiceCoinWidgetState();
@@ -26,8 +26,17 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
   bool _isHeads = true;
   bool _isCoinFlipping = false;
   double _coinRotation = 0.0; // Rotation angle in radians
+  Timer? _diceTimer;
+  Timer? _coinTimer;
 
   final Random _random = Random();
+
+  @override
+  void dispose() {
+    _diceTimer?.cancel();
+    _coinTimer?.cancel();
+    super.dispose();
+  }
 
   void _rollDice() {
     if (_isDiceRolling) return;
@@ -36,13 +45,19 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
     });
 
     int ticks = 0;
-    Timer.periodic(const Duration(milliseconds: 80), (timer) {
+    _diceTimer?.cancel();
+    _diceTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         _diceValues = List.generate(_diceCount, (_) => _random.nextInt(6) + 1);
       });
       ticks++;
       if (ticks > 10) {
         timer.cancel();
+        _diceTimer = null;
         setState(() {
           _isDiceRolling = false;
         });
@@ -57,7 +72,12 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
     });
 
     int ticks = 0;
-    Timer.periodic(const Duration(milliseconds: 60), (timer) {
+    _coinTimer?.cancel();
+    _coinTimer = Timer.periodic(const Duration(milliseconds: 60), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         _coinRotation += pi / 4;
         _isHeads = _random.nextBool();
@@ -65,6 +85,7 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
       ticks++;
       if (ticks > 15) {
         timer.cancel();
+        _coinTimer = null;
         setState(() {
           _coinRotation = 0.0; // Reset visual rotation
           _isCoinFlipping = false;
@@ -181,7 +202,9 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
                                       : (isDark
                                             ? Colors.white12
                                             : Colors.black12),
-                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.borderColor(isDark),
+                                  ),
                                 ),
                                 child: Center(
                                   child: Text(
@@ -208,7 +231,9 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
                         backgroundColor: theme.primaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.controlRadius,
+                          ),
                         ),
                       ),
                       child: Text(provider.translate('KOCOK', 'ROLL')),
@@ -226,7 +251,9 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
                         vertical: 12,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.controlRadius,
+                        ),
                       ),
                     ),
                     icon: const Icon(Icons.toll_rounded),
@@ -249,7 +276,7 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
           height: 80,
           decoration: BoxDecoration(
             color: AppTheme.cardColor(isDark),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppTheme.controlRadius),
             border: Border.all(color: theme.primaryColor, width: 2),
             boxShadow: [
               BoxShadow(
@@ -266,11 +293,10 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
 
   Widget _buildDiceFace(int val, Color color) {
     // Return dots on dice face based on value
-    List<Widget> dots = [];
     final dot = Container(
       width: 10,
       height: 10,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      decoration: BoxDecoration(color: color),
     );
 
     const Map<int, List<int>> diceDotsMap = {
@@ -313,12 +339,12 @@ class _DiceCoinWidgetState extends State<DiceCoinWidget>
         width: 140,
         height: 140,
         decoration: BoxDecoration(
-          color: Colors.amber[600],
+          color: AppTheme.neutralColor,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.amber[800]!, width: 6),
+          border: Border.all(color: AppTheme.secondaryColor, width: 6),
           boxShadow: [
             BoxShadow(
-              color: Colors.amber.withOpacity(0.3),
+              color: AppTheme.neutralColor.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),

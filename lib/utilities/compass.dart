@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class CompassWidget extends StatefulWidget {
-  const CompassWidget({Key? key}) : super(key: key);
+  const CompassWidget({super.key});
 
   @override
   State<CompassWidget> createState() => _CompassWidgetState();
@@ -18,6 +18,8 @@ class _CompassWidgetState extends State<CompassWidget> {
   double _heading = 0.0;
   StreamSubscription? _subscription;
   bool _sensorAvailable = true;
+  bool _hasSensorEvent = false;
+  Timer? _fallbackTimer;
   double _manualAngle = 0.0; // Manual rotation for simulator
 
   @override
@@ -28,6 +30,7 @@ class _CompassWidgetState extends State<CompassWidget> {
 
   @override
   void dispose() {
+    _fallbackTimer?.cancel();
     _subscription?.cancel();
     super.dispose();
   }
@@ -43,13 +46,16 @@ class _CompassWidgetState extends State<CompassWidget> {
           // Normalize to 0-360 degrees
           angle = (angle + 360) % 360;
 
+          if (!mounted) return;
           setState(() {
             // Apply smoothing or just direct assignment
             _heading = angle;
             _sensorAvailable = true;
+            _hasSensorEvent = true;
           });
         },
         onError: (error) {
+          if (!mounted) return;
           setState(() {
             _sensorAvailable = false;
           });
@@ -57,14 +63,14 @@ class _CompassWidgetState extends State<CompassWidget> {
         cancelOnError: true,
       );
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _sensorAvailable = false;
       });
     }
 
-    // After 2 seconds, if heading remains zero, fallback to simulator
-    Timer(const Duration(seconds: 2), () {
-      if (_heading == 0.0) {
+    _fallbackTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted && !_hasSensorEvent) {
         setState(() {
           _sensorAvailable = false;
         });
@@ -112,9 +118,6 @@ class _CompassWidgetState extends State<CompassWidget> {
     final isDark = theme.brightness == Brightness.dark;
 
     final angle = _sensorAvailable ? _heading : _manualAngle;
-    final displayAngle =
-        (360 - angle) %
-        360; // Direction dial rotates opposite to user orientation
 
     return Column(
       children: [
@@ -122,12 +125,15 @@ class _CompassWidgetState extends State<CompassWidget> {
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: BentoCard(
-              color: Colors.amber.withOpacity(0.15),
-              borderColor: Colors.amber,
+              color: AppTheme.neutralColor.withOpacity(0.15),
+              borderColor: AppTheme.neutralColor,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_rounded, color: Colors.amber),
+                  const Icon(
+                    Icons.warning_rounded,
+                    color: AppTheme.neutralColor,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(

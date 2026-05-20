@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:torch_light/torch_light.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class FlashlightWidget extends StatefulWidget {
-  const FlashlightWidget({Key? key}) : super(key: key);
+  const FlashlightWidget({super.key});
 
   @override
   State<FlashlightWidget> createState() => _FlashlightWidgetState();
@@ -45,8 +46,8 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
   void dispose() {
     _stopStrobe();
     _stopSos();
-    if (_isTorchOn) {
-      _turnOffTorch();
+    if (_isTorchOn && !_useScreen) {
+      TorchLight.disableTorch().catchError((_) {});
     }
     super.dispose();
   }
@@ -54,10 +55,12 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
   Future<void> _checkTorchAvailability() async {
     try {
       final isAvailable = await TorchLight.isTorchAvailable();
+      if (!mounted) return;
       setState(() {
         _hasTorch = isAvailable;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _hasTorch = false;
       });
@@ -89,6 +92,7 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
       }
     } catch (e) {
       // Fail fallback
+      if (!mounted) return;
       setState(() {
         _useScreen = true;
         _isTorchOn = !_isTorchOn;
@@ -99,6 +103,7 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
   Future<void> _turnOnTorch() async {
     try {
       await TorchLight.enableTorch();
+      if (!mounted) return;
       setState(() {
         _isTorchOn = true;
       });
@@ -108,6 +113,7 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
   Future<void> _turnOffTorch() async {
     try {
       await TorchLight.disableTorch();
+      if (!mounted) return;
       setState(() {
         _isTorchOn = false;
       });
@@ -137,6 +143,7 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
 
   void _applyStrobeState(bool on) {
     if (_useScreen) {
+      if (!mounted) return;
       setState(() {
         _isTorchOn = on;
       });
@@ -180,7 +187,7 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
     _applyStrobeState(isOn);
 
     _sosTimer = Timer(Duration(milliseconds: duration), () {
-      if (_sosMode) {
+      if (mounted && _sosMode) {
         _sosIndex = (_sosIndex + 1) % _sosPattern.length;
         _runSosCycle();
       }
@@ -196,7 +203,6 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     if (_useScreen && _isTorchOn) {
       // Full screen mode for screen flashlight
@@ -252,10 +258,10 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _colorDot(Colors.white),
-                        _colorDot(Colors.yellow),
-                        _colorDot(Colors.red),
-                        _colorDot(Colors.blue),
-                        _colorDot(Colors.green),
+                        _colorDot(AppTheme.primaryColor),
+                        _colorDot(AppTheme.tertiaryColor),
+                        _colorDot(AppTheme.secondaryColor),
+                        _colorDot(AppTheme.neutralColor),
                       ],
                     ),
                   ],
@@ -298,8 +304,8 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
                         ? theme.primaryColor
                         : Colors.grey[700],
                     foregroundColor: Colors.white,
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(24),
+                    shape: AppTheme.controlShape,
+                    padding: const EdgeInsets.all(22),
                   ),
                   child: const Icon(Icons.power_settings_new_rounded, size: 36),
                 ),
@@ -327,7 +333,7 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
                     ),
                     Switch(
                       value: _useScreen,
-                      activeColor: theme.primaryColor,
+                      activeThumbColor: theme.primaryColor,
                       onChanged: (val) {
                         if (_isTorchOn) {
                           _turnOffTorch();
@@ -406,7 +412,7 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
                       onPressed: _toggleSos,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _sosMode
-                            ? Colors.red
+                            ? AppTheme.primaryColor
                             : Colors.grey[800],
                         foregroundColor: Colors.white,
                       ),
@@ -438,7 +444,6 @@ class _FlashlightWidgetState extends State<FlashlightWidget> {
         height: 32,
         decoration: BoxDecoration(
           color: color,
-          shape: BoxShape.circle,
           border: Border.all(
             color: isSelected ? Colors.white : Colors.transparent,
             width: 3,

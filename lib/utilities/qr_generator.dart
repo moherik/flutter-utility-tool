@@ -3,10 +3,11 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class QrGeneratorWidget extends StatefulWidget {
-  const QrGeneratorWidget({Key? key}) : super(key: key);
+  const QrGeneratorWidget({super.key});
 
   @override
   State<QrGeneratorWidget> createState() => _QrGeneratorWidgetState();
@@ -19,12 +20,11 @@ class _QrGeneratorWidgetState extends State<QrGeneratorWidget> {
   Color _qrColor = Colors.black;
 
   final List<Color> _colors = [
-    Colors.black,
-    Colors.orange,
-    Colors.red,
-    Colors.blue,
-    Colors.green,
-    Colors.purple,
+    AppTheme.secondaryColor,
+    AppTheme.primaryColor,
+    AppTheme.tertiaryColor,
+    AppTheme.neutralColor,
+    Colors.white,
   ];
 
   @override
@@ -37,7 +37,6 @@ class _QrGeneratorWidgetState extends State<QrGeneratorWidget> {
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     final text = _textController.text;
 
@@ -82,7 +81,7 @@ class _QrGeneratorWidgetState extends State<QrGeneratorWidget> {
             child: Column(
               children: [
                 if (text.isEmpty)
-                  Container(
+                  SizedBox(
                     height: 200,
                     child: Center(
                       child: Text(
@@ -99,7 +98,9 @@ class _QrGeneratorWidgetState extends State<QrGeneratorWidget> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(
+                        AppTheme.controlRadius,
+                      ),
                     ),
                     child: QrImageView(
                       data: text,
@@ -132,7 +133,6 @@ class _QrGeneratorWidgetState extends State<QrGeneratorWidget> {
                           height: 32,
                           decoration: BoxDecoration(
                             color: color,
-                            shape: BoxShape.circle,
                             border: Border.all(
                               color: isSelected
                                   ? theme.primaryColor
@@ -161,7 +161,7 @@ class _QrGeneratorWidgetState extends State<QrGeneratorWidget> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppTheme.controlRadius),
                 ),
               ),
               icon: const Icon(Icons.share_rounded),

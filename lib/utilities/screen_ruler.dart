@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class ScreenRulerWidget extends StatefulWidget {
-  const ScreenRulerWidget({Key? key}) : super(key: key);
+  const ScreenRulerWidget({super.key});
 
   @override
   State<ScreenRulerWidget> createState() => _ScreenRulerWidgetState();
@@ -12,7 +13,7 @@ class ScreenRulerWidget extends StatefulWidget {
 
 class _ScreenRulerWidgetState extends State<ScreenRulerWidget> {
   double _sliderPos = 150.0; // Caliper drag position in pixels
-  bool _useCm = true;
+  final bool _useCm = true;
 
   // Conversion values (Standard mobile screen PPI mapping approximation)
   // ~160 logical pixels per inch on standard Flutter devices.
@@ -101,7 +102,9 @@ class _ScreenRulerWidgetState extends State<ScreenRulerWidget> {
                               height: 24,
                               decoration: BoxDecoration(
                                 color: theme.primaryColor,
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.controlRadius,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: theme.primaryColor.withOpacity(0.4),

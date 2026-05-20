@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/app_currency.dart';
 
 class AppProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   String _languageCode = 'id'; // Default Indonesian as requested
+  AppCurrency _currency = AppCurrency.idr;
   List<String> _calcHistory = [];
 
   ThemeMode get themeMode => _themeMode;
   String get languageCode => _languageCode;
+  AppCurrency get currency => _currency;
+  String get currencyCode => _currency.code;
   List<String> get calcHistory => _calcHistory;
 
   AppProvider() {
@@ -29,6 +33,9 @@ class AppProvider with ChangeNotifier {
 
     // Language
     _languageCode = prefs.getString('language_code') ?? 'id';
+
+    // Currency
+    _currency = AppCurrency.fromCode(prefs.getString('currency_code') ?? 'IDR');
 
     // Calculator History
     _calcHistory = prefs.getStringList('calc_history') ?? [];
@@ -56,6 +63,23 @@ class AppProvider with ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language_code', lang);
+  }
+
+  Future<void> changeCurrency(AppCurrency currency) async {
+    if (_currency == currency) return;
+    _currency = currency;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('currency_code', currency.code);
+  }
+
+  /// Format monetary value using the active currency.
+  String formatMoney(double amount) => _currency.format(amount);
+
+  /// Convert amount between currencies (offline rate).
+  double convertMoney(double amount, AppCurrency from, AppCurrency to) {
+    return to.convertFrom(amount, from);
   }
 
   Future<void> addCalcHistory(String expression, String result) async {

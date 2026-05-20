@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class UnitConverterWidget extends StatefulWidget {
-  const UnitConverterWidget({Key? key}) : super(key: key);
+  const UnitConverterWidget({super.key});
 
   @override
   State<UnitConverterWidget> createState() => _UnitConverterWidgetState();
@@ -365,7 +365,9 @@ class _UnitConverterWidgetState extends State<UnitConverterWidget> {
                     checkmarkColor: Colors.white,
                     backgroundColor: AppTheme.cardColor(isDark),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(
+                        AppTheme.controlRadius,
+                      ),
                       side: BorderSide(
                         color: isSelected
                             ? theme.primaryColor
@@ -431,7 +433,9 @@ class _UnitConverterWidgetState extends State<UnitConverterWidget> {
                         ),
                         decoration: BoxDecoration(
                           color: AppTheme.cardAltColor(isDark),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.controlRadius,
+                          ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(

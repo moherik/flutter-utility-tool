@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class TextConverterWidget extends StatefulWidget {
-  const TextConverterWidget({Key? key}) : super(key: key);
+  const TextConverterWidget({super.key});
 
   @override
   State<TextConverterWidget> createState() => _TextConverterWidgetState();

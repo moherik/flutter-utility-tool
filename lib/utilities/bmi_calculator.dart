@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class BmiCalculatorWidget extends StatefulWidget {
-  const BmiCalculatorWidget({Key? key}) : super(key: key);
+  const BmiCalculatorWidget({super.key});
 
   @override
   State<BmiCalculatorWidget> createState() => _BmiCalculatorWidgetState();
@@ -28,7 +29,7 @@ class _BmiCalculatorWidgetState extends State<BmiCalculatorWidget> {
     final bmi = _weight / (heightInMeters * heightInMeters);
 
     String classification = '';
-    Color classificationColor = Colors.green;
+    Color classificationColor = AppTheme.tertiaryColor;
     String description = '';
 
     if (bmi < 18.5) {
@@ -36,14 +37,14 @@ class _BmiCalculatorWidgetState extends State<BmiCalculatorWidget> {
         'Kekurangan Berat Badan',
         'Underweight',
       );
-      classificationColor = Colors.blue;
+      classificationColor = AppTheme.tertiaryColor;
       description = provider.translate(
         'Anda berada di kategori kurang berat badan. Cobalah konsumsi lebih banyak kalori sehat.',
         'You are in the underweight category. Consider consuming more nutrient-rich food.',
       );
     } else if (bmi >= 18.5 && bmi < 24.9) {
       classification = provider.translate('Normal (Ideal)', 'Normal (Healthy)');
-      classificationColor = Colors.green;
+      classificationColor = AppTheme.tertiaryColor;
       description = provider.translate(
         'Berat badan Anda ideal. Pertahankan pola makan sehat dan olahraga teratur!',
         'You have a healthy body weight. Maintain your lifestyle, diet, and regular exercise!',
@@ -53,14 +54,14 @@ class _BmiCalculatorWidgetState extends State<BmiCalculatorWidget> {
         'Kelebihan Berat Badan',
         'Overweight',
       );
-      classificationColor = Colors.orange;
+      classificationColor = AppTheme.neutralColor;
       description = provider.translate(
         'Anda berada di kategori kelebihan berat badan. Disarankan untuk berolahraga lebih aktif.',
         'You are in the overweight category. Regular aerobic exercise and diet monitoring are recommended.',
       );
     } else {
       classification = provider.translate('Obesitas', 'Obese');
-      classificationColor = Colors.red;
+      classificationColor = AppTheme.primaryColor;
       description = provider.translate(
         'Anda berada dalam kategori obesitas. Silakan berkonsultasi dengan ahli gizi/dokter.',
         'You are in the obese category. It is recommended to seek medical or dietary advice.',

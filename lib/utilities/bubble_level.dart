@@ -1,12 +1,14 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class BubbleLevelWidget extends StatefulWidget {
-  const BubbleLevelWidget({Key? key}) : super(key: key);
+  const BubbleLevelWidget({super.key});
 
   @override
   State<BubbleLevelWidget> createState() => _BubbleLevelWidgetState();
@@ -18,6 +20,9 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
   double _z = 9.8;
   StreamSubscription? _subscription;
   bool _sensorAvailable = true;
+  bool _hasSensorEvent = false;
+  Timer? _fallbackTimer;
+  Timer? _returnTimer;
 
   // Simulator fallbacks
   double _simX = 0.0;
@@ -31,6 +36,8 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
 
   @override
   void dispose() {
+    _fallbackTimer?.cancel();
+    _returnTimer?.cancel();
     _subscription?.cancel();
     super.dispose();
   }
@@ -39,14 +46,17 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
     try {
       _subscription = accelerometerEventStream().listen(
         (AccelerometerEvent event) {
+          if (!mounted) return;
           setState(() {
             _x = event.x;
             _y = event.y;
             _z = event.z;
             _sensorAvailable = true;
+            _hasSensorEvent = true;
           });
         },
         onError: (error) {
+          if (!mounted) return;
           setState(() {
             _sensorAvailable = false;
           });
@@ -54,14 +64,14 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
         cancelOnError: true,
       );
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _sensorAvailable = false;
       });
     }
 
-    // After 2 seconds, if we didn't receive any data, fallback to simulation mode
-    Timer(const Duration(seconds: 2), () {
-      if (_x == 0.0 && _y == 0.0 && _z == 9.8) {
+    _fallbackTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted && !_hasSensorEvent) {
         setState(() {
           _sensorAvailable = false;
         });
@@ -80,13 +90,15 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
     // Tilt Left/Right moves X. Tilt Up/Down moves Y.
     double xVal = _sensorAvailable ? _x : _simX;
     double yVal = _sensorAvailable ? _y : _simY;
+    double zVal = _sensorAvailable ? _z : 9.8;
 
     // Calculate angles
     // Pitch (up-down) and Roll (left-right) in degrees
     // pitch = atan2(y, z) * 180 / pi
     // roll = atan2(-x, sqrt(y*y + z*z)) * 180 / pi
-    double pitch = (yVal * 9.0); // Simple linear approximation for readability
-    double roll = (-xVal * 9.0);
+    double pitch = math.atan2(yVal, zVal) * 180 / math.pi;
+    double roll =
+        math.atan2(-xVal, math.sqrt(yVal * yVal + zVal * zVal)) * 180 / math.pi;
 
     if (pitch.abs() > 90) pitch = pitch.sign * 90;
     if (roll.abs() > 90) roll = roll.sign * 90;
@@ -101,12 +113,15 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: BentoCard(
-              color: Colors.amber.withOpacity(0.15),
-              borderColor: Colors.amber,
+              color: AppTheme.neutralColor.withOpacity(0.15),
+              borderColor: AppTheme.neutralColor,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_rounded, color: Colors.amber),
+                  const Icon(
+                    Icons.warning_rounded,
+                    color: AppTheme.neutralColor,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -146,25 +161,34 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
                 ? null
                 : (_) {
                     // Return bubble to center slowly if simulator
-                    Timer.periodic(const Duration(milliseconds: 16), (t) {
-                      if (_sensorAvailable ||
-                          (_simX.abs() < 0.1 && _simY.abs() < 0.1)) {
-                        t.cancel();
-                        setState(() {
-                          _simX = 0;
-                          _simY = 0;
-                        });
-                      } else {
-                        setState(() {
-                          _simX *= 0.85;
-                          _simY *= 0.85;
-                        });
-                      }
-                    });
+                    _returnTimer?.cancel();
+                    _returnTimer = Timer.periodic(
+                      const Duration(milliseconds: 16),
+                      (t) {
+                        if (!mounted) {
+                          t.cancel();
+                          return;
+                        }
+                        if (_sensorAvailable ||
+                            (_simX.abs() < 0.1 && _simY.abs() < 0.1)) {
+                          t.cancel();
+                          _returnTimer = null;
+                          setState(() {
+                            _simX = 0;
+                            _simY = 0;
+                          });
+                        } else {
+                          setState(() {
+                            _simX *= 0.85;
+                            _simY *= 0.85;
+                          });
+                        }
+                      },
+                    );
                   },
             child: BentoCard(
-              color: isFlat ? Colors.green.withOpacity(0.05) : null,
-              borderColor: isFlat ? Colors.green : null,
+              color: isFlat ? AppTheme.tertiaryColor.withOpacity(0.05) : null,
+              borderColor: isFlat ? AppTheme.tertiaryColor : null,
               child: Center(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -180,10 +204,12 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
                     double bubbleY = (yVal / 9.8) * maxDisplacement;
 
                     // Cap bubble inside boundary
-                    if (bubbleX.abs() > maxDisplacement)
+                    if (bubbleX.abs() > maxDisplacement) {
                       bubbleX = bubbleX.sign * maxDisplacement;
-                    if (bubbleY.abs() > maxDisplacement)
+                    }
+                    if (bubbleY.abs() > maxDisplacement) {
                       bubbleY = bubbleY.sign * maxDisplacement;
+                    }
 
                     return Stack(
                       alignment: Alignment.center,
@@ -196,7 +222,7 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isFlat
-                                  ? Colors.green
+                                  ? AppTheme.tertiaryColor
                                   : (isDark ? Colors.white24 : Colors.black12),
                               width: 3,
                             ),
@@ -210,8 +236,8 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isFlat
-                                  ? Colors.green
-                                  : Colors.red.withOpacity(0.5),
+                                  ? AppTheme.tertiaryColor
+                                  : AppTheme.primaryColor.withOpacity(0.5),
                               width: 1.5,
                             ),
                           ),
@@ -236,12 +262,14 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
                             height: 36,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isFlat ? Colors.green : theme.primaryColor,
+                              color: isFlat
+                                  ? AppTheme.tertiaryColor
+                                  : theme.primaryColor,
                               boxShadow: [
                                 BoxShadow(
                                   color:
                                       (isFlat
-                                              ? Colors.green
+                                              ? AppTheme.tertiaryColor
                                               : theme.primaryColor)
                                           .withOpacity(0.5),
                                   blurRadius: 10,
@@ -297,7 +325,7 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: isFlat
-                              ? Colors.green
+                              ? AppTheme.tertiaryColor
                               : (isDark ? Colors.white : Colors.black87),
                         ),
                       ),
@@ -327,7 +355,7 @@ class _BubbleLevelWidgetState extends State<BubbleLevelWidget> {
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: isFlat
-                              ? Colors.green
+                              ? AppTheme.tertiaryColor
                               : (isDark ? Colors.white : Colors.black87),
                         ),
                       ),

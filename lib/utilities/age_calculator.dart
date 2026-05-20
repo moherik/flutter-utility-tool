@@ -5,7 +5,7 @@ import '../providers/app_provider.dart';
 import '../widgets/bento_card.dart';
 
 class AgeCalculatorWidget extends StatefulWidget {
-  const AgeCalculatorWidget({Key? key}) : super(key: key);
+  const AgeCalculatorWidget({super.key});
 
   @override
   State<AgeCalculatorWidget> createState() => _AgeCalculatorWidgetState();

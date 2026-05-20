@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class QrScannerWidget extends StatefulWidget {
-  const QrScannerWidget({Key? key}) : super(key: key);
+  const QrScannerWidget({super.key});
 
   @override
   State<QrScannerWidget> createState() => _QrScannerWidgetState();
@@ -57,7 +57,7 @@ class _QrScannerWidgetState extends State<QrScannerWidget> {
             child: AspectRatio(
               aspectRatio: 1.0,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppTheme.controlRadius),
                 child: _cameraActive
                     ? MobileScanner(
                         controller: _scannerController,
@@ -96,7 +96,9 @@ class _QrScannerWidgetState extends State<QrScannerWidget> {
                                   backgroundColor: theme.primaryColor,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(
+                                      AppTheme.controlRadius,
+                                    ),
                                   ),
                                 ),
                                 icon: const Icon(Icons.refresh_rounded),

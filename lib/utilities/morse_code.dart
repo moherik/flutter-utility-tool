@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bento_card.dart';
 
 class MorseCodeWidget extends StatefulWidget {
-  const MorseCodeWidget({Key? key}) : super(key: key);
+  const MorseCodeWidget({super.key});
 
   @override
   State<MorseCodeWidget> createState() => _MorseCodeWidgetState();
@@ -71,6 +72,7 @@ class _MorseCodeWidgetState extends State<MorseCodeWidget> {
 
   @override
   void dispose() {
+    _isPlaying = false;
     _textController.dispose();
     _morseController.dispose();
     super.dispose();
@@ -119,13 +121,17 @@ class _MorseCodeWidgetState extends State<MorseCodeWidget> {
       final char = morseStr[i];
 
       if (char == '.') {
+        if (!mounted) return;
         setState(() => _flashState = true);
         await Future.delayed(const Duration(milliseconds: 200));
+        if (!mounted || !_isPlaying) return;
         setState(() => _flashState = false);
         await Future.delayed(const Duration(milliseconds: 200));
       } else if (char == '-') {
+        if (!mounted) return;
         setState(() => _flashState = true);
         await Future.delayed(const Duration(milliseconds: 600));
+        if (!mounted || !_isPlaying) return;
         setState(() => _flashState = false);
         await Future.delayed(const Duration(milliseconds: 200));
       } else if (char == ' ') {
@@ -135,6 +141,7 @@ class _MorseCodeWidgetState extends State<MorseCodeWidget> {
       }
     }
 
+    if (!mounted) return;
     setState(() {
       _isPlaying = false;
       _flashState = false;
@@ -152,7 +159,6 @@ class _MorseCodeWidgetState extends State<MorseCodeWidget> {
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     if (_flashState) {
       return Scaffold(
@@ -292,11 +298,13 @@ class _MorseCodeWidgetState extends State<MorseCodeWidget> {
                   onPressed: _isPlaying ? _stopMorse : _playMorse,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isPlaying
-                        ? Colors.red
+                        ? AppTheme.primaryColor
                         : theme.primaryColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(
+                        AppTheme.controlRadius,
+                      ),
                     ),
                   ),
                   icon: Icon(
@@ -315,7 +323,9 @@ class _MorseCodeWidgetState extends State<MorseCodeWidget> {
                   },
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(
+                        AppTheme.controlRadius,
+                      ),
                     ),
                   ),
                   icon: const Icon(Icons.clear_all_rounded),
